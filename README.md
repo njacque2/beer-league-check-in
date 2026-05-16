@@ -1,73 +1,101 @@
-# React + TypeScript + Vite
+# Beer League Check-In
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web app for a small group of players to manage game attendance and beer duty. Users log in via magic link, see upcoming games, mark attendance, and volunteer to bring beer.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Frontend:** React + TypeScript + Vite + Tailwind CSS
+- **UI Components:** shadcn/ui
+- **Backend:** Vercel serverless functions (`/api`)
+- **Database:** Supabase (Postgres) with Row-Level Security
+- **Auth:** Supabase Auth (magic link email)
+- **Real-time:** Supabase Realtime (WebSocket subscriptions)
+- **Email:** Resend (server-side only)
+- **Monitoring:** Sentry (client + server)
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- [Node.js](https://nodejs.org/) (v20+)
+- [Docker](https://www.docker.com/) (for local Supabase)
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+```bash
+# Install dependencies
+npm install
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# Start Supabase (requires Docker running)
+npx supabase start
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# Apply migrations and seed data
+npx supabase db reset
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Start the dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Local URLs
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Service         | URL                          |
+|-----------------|------------------------------|
+| App             | http://localhost:5173         |
+| Supabase Studio | http://127.0.0.1:54323       |
+| Mailpit (email) | http://127.0.0.1:54324       |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Magic link emails are captured by Mailpit locally — check there after signing in.
+
+## Commands
+
+```bash
+# Dev server
+npm run dev
+
+# Build for production
+npm run build
+
+# Lint
+npm run lint
+
+# Type check
+npm run typecheck
+
+# Reset database (re-applies migrations + seed data)
+npx supabase db reset
+
+# Regenerate TypeScript types after schema changes
+npx supabase gen types typescript --local 2>/dev/null > src/lib/supabase/database.types.ts
 ```
+
+## Shutting Down
+
+```bash
+# Stop the dev server (Ctrl+C in its terminal, or)
+pkill -f vite
+
+# Stop Supabase
+npx supabase stop
+```
+
+## Environment Variables
+
+Copy `.env.local.example` to `.env.local` for local dev. Set all of these in Vercel for production.
+
+| Variable                    | Scope       | Description                  |
+|-----------------------------|-------------|------------------------------|
+| `VITE_SUPABASE_URL`        | Client      | Supabase project URL         |
+| `VITE_SUPABASE_ANON_KEY`   | Client      | Supabase public anon key     |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Supabase service role key    |
+| `RESEND_API_KEY`            | Server only | Resend API key for emails    |
+| `VITE_SENTRY_DSN`          | Client      | Sentry DSN for frontend      |
+| `SENTRY_DSN`               | Server only | Sentry DSN for API routes    |
+| `ADMIN_EMAILS`             | Server only | Comma-separated admin emails |
+
+## API Routes
+
+| Endpoint                    | Description                                              |
+|-----------------------------|----------------------------------------------------------|
+| `POST /api/send-reminder`   | Sends game reminder to all attending players              |
+| `POST /api/beer-reminder`   | Game-day nudge if no one has volunteered for beer         |
+| `POST /api/admin/create-user`| Creates a new player (auth user + profile + team member) |
+
+All routes require a valid JWT in the `Authorization: Bearer <token>` header.
