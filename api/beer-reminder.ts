@@ -45,6 +45,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ error: "Game not found" });
   }
 
+  if (game.game_time) {
+    const gameDate = new Date(game.game_time).toDateString();
+    const today = new Date().toDateString();
+    if (gameDate !== today) {
+      return res.status(400).json({ error: "Beer reminders are only sent on game day" });
+    }
+  }
+
   const { data: gameTeams } = await supabase
     .from("game_teams")
     .select("*")
@@ -58,6 +66,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: responses } = await supabase
     .from("game_response")
+    .select("*")
+    .in("game_team_id", gameTeamIds);
+
+  const hasBeerVolunteer = (responses ?? []).some((r) => r.bringing_beer);
+
+  if (hasBeerVolunteer) {
+    return res.status(200).json({ sent: 0, message: "Someone is already bringing beer" });
+  }
+
+  const attendingResponses = await supabase
+    .from("game_response")
     .select("*, team_member:team_member_id(*, profile:profile_id(*, user:user_id(email)))")
     .in("game_team_id", gameTeamIds)
     .eq("attending", true);
@@ -66,15 +85,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const gameTime = game.game_time
     ? new Date(game.game_time).toLocaleString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
         hour: "numeric",
         minute: "2-digit",
       })
     : "TBD";
 
-  const emails = (responses ?? [])
+  const emails = (attendingResponses.data ?? [])
     .map((r) => {
       const member = r.team_member as Record<string, unknown> | null;
       const profile = member?.profile as Record<string, unknown> | null;
@@ -92,8 +108,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await resend.emails.send({
         from: "Beer League <noreply@yourdomain.com>",
         to: email,
-        subject: `Game reminder: ${gameTime}`,
-        html: `<p>Hey ${name},</p><p>Reminder: you're checked in for the game on <strong>${gameTime}</strong> at ${game.location ?? "TBD"}.</p><p>See you there!</p>`,
+        subject: "No one is bringing beer today!",
+        html: `<p>Hey ${name},</p><p>Today's game is at <strong>${gameTime}</strong> and nobody has volunteered to bring beer yet.</p><p>Log in and claim beer duty before someone else does!</p>`,
       });
       sent++;
     } catch (err) {

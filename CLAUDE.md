@@ -223,6 +223,8 @@ Before every commit, review the staged changes for the following:
 Most reads/writes go directly from React to Supabase via the SDK.
 Only add an API route when the browser cannot safely do the operation.
 
-- `POST /api/send-reminder` — Sends game reminder email via Resend.
+- `POST /api/send-reminder` — Sends game reminder email to all attending players via Resend.
+- `POST /api/beer-reminder` — Game-day only. If no one has volunteered for beer,
+  emails all attending players to nudge them.
 - `POST /api/admin/create-user` — Creates a `profile` row using the service role key
   (bypasses RLS so an admin can onboard new league members).
