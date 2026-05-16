@@ -172,6 +172,24 @@ VITE_SENTRY_DSN             # client Sentry
 SENTRY_DSN                  # server Sentry (API routes)
 ```
 
+## Pre-commit review checklist
+
+Before every commit, review the staged changes for the following:
+
+1. **No secrets or credentials** — grep staged files for API keys, JWTs (`eyJ`),
+   service role keys (`sbp_`, `service_role`), Resend keys (`re_`), and any
+   hardcoded tokens. `.env.local` must never be committed (gitignored via `*.local`).
+2. **No server-only values in client code** — `SUPABASE_SERVICE_ROLE_KEY` and
+   `RESEND_API_KEY` must never appear in `src/`. Only `VITE_`-prefixed env vars
+   are allowed in browser code.
+3. **No XSS vectors** — no `dangerouslySetInnerHTML`, no unsanitized user input
+   rendered in JSX.
+4. **No `any` types** — use `unknown` and narrow, or generated Supabase types.
+5. **No stale files** — check for unused imports, leftover template files, or
+   dead code introduced by the change.
+6. **Lint + typecheck pass** — run `npm run lint` and `npm run typecheck` (or
+   `tsc -b`) before committing.
+
 ## Conventions
 
 - **TypeScript everywhere.** No `any` — use `unknown` and narrow, or use generated
