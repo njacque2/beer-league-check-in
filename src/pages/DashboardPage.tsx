@@ -2,6 +2,7 @@ import { useSession } from "../hooks/useSession";
 import { useProfile } from "../hooks/useProfile";
 import { useGames } from "../hooks/useGames";
 import GameCard from "../components/GameCard";
+import { DashboardSkeleton } from "../components/Skeleton";
 
 export default function DashboardPage() {
   const { user } = useSession();
@@ -13,15 +14,25 @@ export default function DashboardPage() {
   );
 
   if (profileLoading || gamesLoading) {
-    return <p className="text-gray-500">Loading...</p>;
+    return <DashboardSkeleton />;
   }
 
   if (profileError) {
-    return <p className="text-red-600">{profileError}</p>;
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+        <p className="font-medium text-red-800">Unable to load profile</p>
+        <p className="mt-1 text-sm text-red-600">{profileError}</p>
+      </div>
+    );
   }
 
   if (gamesError) {
-    return <p className="text-red-600">{gamesError}</p>;
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+        <p className="font-medium text-red-800">Unable to load games</p>
+        <p className="mt-1 text-sm text-red-600">{gamesError}</p>
+      </div>
+    );
   }
 
   return (
@@ -38,15 +49,18 @@ export default function DashboardPage() {
       </div>
 
       {games.length === 0 ? (
-        <p className="text-gray-500">No upcoming games scheduled.</p>
+        <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+          <p className="text-gray-500">No upcoming games scheduled.</p>
+        </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {games.map((g) => (
+          {games.map((g, i) => (
             <GameCard
               key={g.game.id}
               data={g}
               teamMemberId={teamMember!.id}
               onUpdated={refresh}
+              isNext={i === 0}
             />
           ))}
         </div>
